@@ -1,6 +1,8 @@
 from dash import Dash, dcc, html
 import dash_bootstrap_components as dbc
 import pandas as pd
+import plotly.express as px
+from dash.dependencies import Input, Output
 
 # Carrega o dataset
 df = pd.read_csv("data/alunos_classificados.csv") 
@@ -66,10 +68,90 @@ app.layout = dbc.Container([
     ]),
 
     html.Hr(),
-
-    # Placeholder
-    html.Div("Gráficos serão inseridos aqui.", id="graficos_placeholder", className="text-muted text-center mt-4")
+dbc.Row([
+    dbc.Col(
+    dcc.Graph(id="grafico_vaga", config={"displayModeBar": False}),
+    width=6),
+    dbc.Col(
+    dcc.Graph(id="grafico_sexo", config={"displayModeBar": False}),
+    width=6
+    )
+])
 ], fluid=True)
+
+@app.callback(
+    Output("grafico_vaga", "figure"),
+    [
+        Input("filtro_curso", "value"),
+        Input("filtro_campus", "value"),
+        Input("filtro_vaga", "value"),
+    ]
+)
+
+def atualizar_grafico_vaga(curso, campus, vaga):
+    # Copia do DataFrame original
+    df_filtrado = df.copy()
+
+    # Aplicar filtros se selecionados
+    if curso:
+        df_filtrado = df_filtrado[df_filtrado['CURSO'].isin(curso)]
+    if campus:
+        df_filtrado = df_filtrado[df_filtrado['CAMPUS'].isin(campus)]
+    if vaga:
+        df_filtrado = df_filtrado[df_filtrado['VAGA CLASSIFICACAO'].isin(vaga)]
+
+    # Agrupar dados para o gráfico
+    contagem = df_filtrado['VAGA CLASSIFICACAO'].value_counts().reset_index()
+    contagem.columns = ['VAGA CLASSIFICACAO', 'TOTAL']
+
+    # Criar gráfico de barras com Plotly
+    fig = px.bar(
+        contagem,
+        x='VAGA CLASSIFICACAO',
+        y='TOTAL',
+        text='TOTAL',
+        title='Número de Aprovados por Tipo de Vaga',
+        labels={'TOTAL': 'Total de Aprovados'},
+        color='VAGA CLASSIFICACAO'
+    )
+    fig.update_layout(xaxis_title="Tipo de Vaga", yaxis_title="Total", title_x=0.5)
+
+    return fig
+
+@app.callback(
+    Output("grafico_sexo", "figure"),
+    [
+        Input("filtro_curso", "value"),
+        Input("filtro_campus", "value"),
+        Input("filtro_vaga", "value"),
+    ]
+)
+
+def atualizar_grafico_sexo(curso, campus, vaga):
+    df_filtrado = df.copy()
+
+    if curso:
+        df_filtrado = df_filtrado[df_filtrado['CURSO'].isin(curso)]
+    if campus:
+        df_filtrado = df_filtrado[df_filtrado['CAMPUS'].isin(campus)]
+    if vaga:
+        df_filtrado = df_filtrado[df_filtrado['VAGA CLASSIFICACAO'].isin(vaga)]
+
+    contagem = df_filtrado['SEXO'].value_counts().reset_index()
+    contagem.columns = ['SEXO', 'TOTAL']
+
+    fig = px.pie(
+        contagem,
+        names='SEXO',
+        values='TOTAL',
+        title='Distribuição por Sexo',
+        color_discrete_sequence=px.colors.qualitative.Set3
+    )
+    fig.update_traces(textinfo='percent+label')
+    fig.update_layout(title_x=0.5)
+
+    return fig
+
 
 # Rodar o servidor
 if __name__ == "__main__":
