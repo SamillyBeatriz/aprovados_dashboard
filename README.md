@@ -7,6 +7,9 @@ Este projeto tem como objetivo explorar dados reais de estudantes aprovados em u
 - Visualização de KPIs: total de aprovados, nota média, % de cotistas e % de mulheres.
 - Gráficos dinâmicos:
 
+  - Barras por tipo de vaga
+  - Pizza por distribuição de sexo
+
 - Filtros por curso, campus e modalidade de ingresso
 
 ## 🚀 Tecnologias utilizadas
