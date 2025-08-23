@@ -187,6 +187,10 @@ def atualizar_grafico_sexo(universidade, curso, cidade, vaga):
     contagem = df_filtrado['SEXO'].value_counts().reset_index()
     contagem.columns = ['SEXO', 'TOTAL']
 
+    contagem['SEXO'] = contagem['SEXO'].replace({
+    'F': 'Feminino',
+    'M': 'Masculino'})
+
     filtros_ativos = any([
         universidade, curso, cidade, vaga
     ])
@@ -216,7 +220,11 @@ def atualizar_grafico_sexo(universidade, curso, cidade, vaga):
         names='SEXO',
         values='TOTAL',
         title=titulo,
-        color_discrete_sequence=px.colors.qualitative.Set3
+        color="SEXO",
+        color_discrete_map={
+            "Feminino": "#0ea5e9",   
+            "Masculino": "#ffffb3" 
+        }
     )
     fig.update_traces(textinfo='percent+label')
     fig.update_layout(plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)", title_x=0.5)
