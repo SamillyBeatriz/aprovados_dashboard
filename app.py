@@ -4,8 +4,20 @@ import pandas as pd
 import plotly.express as px
 from dash.dependencies import Input, Output, State
 
+def padronizar_curso(s: pd.Series) -> pd.Series:
+    s = s.str.strip().str.upper()
+    
+    s = s.replace({
+        "FÍSICA": "FISICA",
+        "LETRAS INGLES" :"LETRAS - INGLES"
+    })
+    # normalização de espaços múltiplos
+    s = s.str.replace(r"\s+", " ", regex=True)
+    return s
+
 # Carrega o dataset
 df = pd.read_csv("data/alunos_classificados1.csv") 
+df["CURSO"] = padronizar_curso(df["CURSO"])
 
 # Inicializar o app
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -25,6 +37,29 @@ def mapeamento_de_vagas():
         "B": "B - PCD"
     }
     return mapa_vagas
+
+def mapeamento_de_area():
+    mapa_area = { "PEDAGOGIA": "Educação", 
+                "LETRAS PORTUGUES": "Educação", 
+                "LETRAS INGLES": "Educação", 
+                "LETRAS - ESPANHOL": "Educação", 
+                "LETRAS - PORTUGUES": "Educação", 
+                "ADMINISTRAÇÃO": "Ciências Humanas e Sociais Aplicadas", 
+                "GEOGRAFIA": "Ciências Humanas e Sociais Aplicadas", 
+                "HISTÓRIA": "Ciências Humanas e Sociais Aplicadas", 
+                "MEDICINA": "Ciências da Saúde e Biológicas", 
+                "CIENCIAS BIOLOGICAS": "Ciências da Saúde e Biológicas", 
+                "ENGENHARIA DE PRODUÇÃO": "Ciências Exatas e Tecnológicas", 
+                "CIENCIA E TECNOLOGIA": "Ciências Exatas e Tecnológicas", 
+                "ENGENHARIA DE MATERIAIS": "Ciências Exatas e Tecnológicas", 
+                "GEOPROCESSAMENTO": "Ciências Exatas e Tecnológicas", 
+                "FÍSICA": "Ciências Exatas e Tecnológicas", 
+                "MATEMATICA": "Ciências Exatas e Tecnológicas", 
+                "QUIMICA": "Ciências Exatas e Tecnológicas", 
+                "AGRONOMIA": "Ciências Agrárias", 
+                "ENGENHARIA FLORESTAL": "Ciências Agrárias", 
+                "AGROECOLOGIA": "Ciências Agrárias" }
+    return mapa_area
 
 def filtrar_df(df_base, universidades=None, cursos=None, cidades=None, vagas=None):
     df_f = df_base
@@ -106,15 +141,26 @@ app.layout = dbc.Container([
     ]),
 
     html.Hr(),
-dbc.Row([
-    dbc.Col(
-    dcc.Graph(id="grafico_vaga", config={"displayModeBar": False}),
-    width=7),
-    dbc.Col(
-    dcc.Graph(id="grafico_sexo", config={"displayModeBar": False}),
-    width=5)
-])
-], fluid=True)
+
+    # Gráficos
+    dbc.Row([
+        dbc.Col(
+            dcc.Graph(id="grafico_vaga", config={"displayModeBar": False}),
+        width=6, className="grafico-sombreado m-2"),
+
+        dbc.Col(
+            dcc.Graph(id="grafico_sexo", config={"displayModeBar": False}),
+        width=5, className="grafico-sombreado m-2"),
+
+        dbc.Col(
+            dcc.Graph(id="grafico_area", config={"displayModeBar": False}),
+            width=11, className="grafico-sombreado m-2"),
+   
+        dbc.Col(
+            dcc.Graph(id="grafico_sexo_por_area", config={"displayModeBar": False}), 
+            width=11, className="grafico-sombreado m-2"),      
+    ])
+], style={"maxWidth": "1800px", "margin": "0 auto"}),
 
 @app.callback(
     Output("grafico_vaga", "figure"),
@@ -158,7 +204,12 @@ def atualizar_grafico_vaga(universidade, curso, cidade, vaga):
         labels={'TOTAL': 'Total de Aprovados'},
         color='VAGA CLASSIFICAÇÃO'
     )
-    fig.update_layout(xaxis_title="Tipo de Vaga", yaxis_title="Total", plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)", title_x=0.5)
+    fig.update_layout(xaxis_title="Tipo de Vaga", 
+                      yaxis_title="Total", 
+                      plot_bgcolor="rgba(0,0,0,0)",
+                      paper_bgcolor="rgba(0,0,0,0)", 
+                      title_x=0.5,
+                      height=400)
 
     return fig
 
@@ -198,7 +249,7 @@ def atualizar_grafico_sexo(universidade, curso, cidade, vaga):
     if not filtros_ativos:
 
         total = contagem['TOTAL'].sum()
-        fem = contagem.loc[contagem['SEXO'] == 'F', 'TOTAL'].sum()
+        fem = contagem.loc[contagem['SEXO'] == 'Feminino', 'TOTAL'].sum()
         perc_fem = (fem / total * 100) if total > 0 else 0
         titulo = f"Mulheres representam a maioria dos aprovados ({perc_fem:.1f}%)"
     else:
@@ -227,7 +278,10 @@ def atualizar_grafico_sexo(universidade, curso, cidade, vaga):
         }
     )
     fig.update_traces(textinfo='percent+label')
-    fig.update_layout(plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)", title_x=0.5)
+    fig.update_layout(plot_bgcolor="rgba(0,0,0,0)",
+                      paper_bgcolor="rgba(0,0,0,0)", 
+                      title_x=0.5,
+                      height=400)
 
     return fig
 
@@ -254,7 +308,6 @@ def atualizar_cursos_por_cidade(cidades_selecionadas, cursos_selecionados):
     cursos_validos = sorted(df_subset["CURSO"].dropna().unique())
     options = [{'label': c, 'value': c} for c in cursos_validos]
 
-    
     if cursos_selecionados:
        
         if isinstance(cursos_selecionados, str):
@@ -263,9 +316,145 @@ def atualizar_cursos_por_cidade(cidades_selecionadas, cursos_selecionados):
     else:
         novos_values = []
 
-   
     return options, novos_values
 
+@app.callback(
+    Output("grafico_area", "figure"),
+    [
+        Input("filtro_universidade", "value"),
+        Input("filtro_curso", "value"),
+        Input("filtro_cidade", "value"),
+        Input("filtro_vaga", "value"),
+    ]
+)
+
+def atualizar_grafico_area(universidade, curso, cidade, vaga):
+    # Copia do DataFrame original
+    df_filtrado = df.copy()
+    
+
+    # filtros
+    if cidade:
+        df_filtrado = df_filtrado[df_filtrado['CIDADE'].isin(cidade)]
+    if vaga:
+        df_filtrado = df_filtrado[df_filtrado['VAGA CLASSIFICAÇÃO'].isin(vaga)]
+    if universidade:
+        df_filtrado = df_filtrado[df_filtrado['UNIVERSIDADE'].isin(universidade)]
+
+    df_filtrado['AREA'] = df_filtrado['CURSO'].map(mapeamento_de_area())
+
+    contagem = (
+        df_filtrado['AREA']
+        .value_counts()
+        .reset_index()
+        .rename(columns={'index': 'AREA', 'AREA': 'TOTAL'})
+        .sort_values('TOTAL', ascending=False)
+        .reset_index(drop=True)
+    )
+
+    contagem.columns = ['AREA', 'TOTAL']
+
+    # Se não houver dados após filtros
+    if contagem.empty:
+        fig = px.bar(title="Sem dados para os filtros aplicados")
+        fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", 
+                          paper_bgcolor="rgba(0,0,0,0)", 
+                          title_x=0.5, 
+                          height=500)
+        return fig
+    
+    # Área com maior aquisição
+    top_area = contagem.loc[0, 'AREA']
+    top_total = int(contagem.loc[0, 'TOTAL'])
+    total_geral = int(contagem['TOTAL'].sum())
+    top_share = (top_total / total_geral * 100) if total_geral > 0 else 0
+
+    # título dinâmico
+    filtros = []
+    if universidade: filtros.append(f"Universidade(s): {', '.join(universidade)}")
+    if cidade:       filtros.append(f"Cidade(s): {', '.join(cidade)}")
+    if vaga:         filtros.append(f"Vaga(s): {', '.join(vaga)}")
+    subtitulo = f"<br><sup>Filtros: {' | '.join(filtros)}</sup>" if filtros else ""
+
+    titulo = f"{top_area} é a área com maior aquisição ({top_total} alunos, {top_share:.1f}%)" + subtitulo
+
+    cores = ['#17becf' if a == top_area else '#cbd5e1' for a in contagem['AREA']]
+
+    # Gráfico
+    fig = px.bar(
+        contagem,
+        x='AREA',
+        y='TOTAL',
+        text='TOTAL',
+        title=titulo)
+  
+    fig.update_traces(marker_color=cores, textposition='outside', showlegend=False, cliponaxis=False)
+    
+    fig.update_layout(
+        xaxis_title="Área",
+        yaxis=dict(
+        automargin=True,       
+        categoryorder="total ascending"  # ordena pelas quantidades 
+        ),
+        yaxis_title="Total",
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        title_x=0.5,
+        height=400 
+    )
+
+    return fig
+
+@app.callback(
+    Output("grafico_sexo_por_area", "figure"),
+    [
+        Input("filtro_universidade", "value"),
+        Input("filtro_curso", "value"),
+        Input("filtro_cidade", "value"),
+        Input("filtro_vaga", "value"),
+    ]
+)
+
+def atualizar_grafico_sexo_por_area(universidade, curso, cidade, vaga):
+    df_filtrado = df.copy()
+
+    df_filtrado["AREA"] = df_filtrado["CURSO"].map(mapeamento_de_area())
+
+    # agrega sexo por área
+    contagem_sexo_area = (
+        df_filtrado
+        .groupby(["AREA", "SEXO"])
+        .size()
+        .reset_index(name="TOTAL")
+        .dropna(subset=["AREA"])
+    )
+
+    contagem_sexo_area["SEXO"] = contagem_sexo_area["SEXO"].replace(
+        {"F": "Feminino", "M": "Masculino"}
+    )
+
+    fig = px.pie(
+        contagem_sexo_area,
+        names="SEXO",
+        values="TOTAL",
+        color="SEXO",
+        color_discrete_map={"Feminino": "#0ea5e9", "Masculino": "#ffffb3"},
+        facet_col="AREA",  
+        hole=0.55,
+        title="Distribuição por Sexo em cada Área"
+    )
+
+    fig.update_traces(textinfo="percent", textposition="inside", showlegend=True)
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))  # mostra só o nome da área
+
+    fig.update_layout(
+        legend_title_text="Sexo",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        height=400,
+        title_x=0.5
+    )
+    return fig
 
 # Rodar o servidor
 if __name__ == "__main__":
