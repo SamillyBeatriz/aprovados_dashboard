@@ -4,6 +4,41 @@ import pandas as pd
 import plotly.express as px
 from dash.dependencies import Input, Output, State
 
+MAPA_VAGAS = {
+        "A": "A - Ampla Concorrência",
+        "I": "I - Escola Renda PPI",
+        "E": "E - Escola PPI",
+        "J": "J - Escola Renda PPI PCD",
+        "C": "C - Escola",
+        "G": "G - Escola Renda",
+        "H": "H - Escola Renda PCD",
+        "D": "D - Escola PCD",
+        "F": "F - Escola PPI PCD",
+        "B": "B - PCD"
+    }
+
+MAPA_AREAS = { 
+        "PEDAGOGIA": "Educação", 
+        "LETRAS PORTUGUES": "Educação", 
+        "LETRAS INGLES": "Educação", 
+        "LETRAS - ESPANHOL": "Educação", 
+        "LETRAS - PORTUGUES": "Educação", 
+        "ADMINISTRAÇÃO": "Ciências Humanas e Sociais Aplicadas", 
+        "GEOGRAFIA": "Ciências Humanas e Sociais Aplicadas", 
+        "HISTÓRIA": "Ciências Humanas e Sociais Aplicadas", 
+        "MEDICINA": "Ciências da Saúde e Biológicas", 
+        "CIENCIAS BIOLOGICAS": "Ciências da Saúde e Biológicas", 
+        "ENGENHARIA DE PRODUÇÃO": "Ciências Exatas e Tecnológicas", 
+        "CIENCIA E TECNOLOGIA": "Ciências Exatas e Tecnológicas", 
+        "ENGENHARIA DE MATERIAIS": "Ciências Exatas e Tecnológicas", 
+        "GEOPROCESSAMENTO": "Ciências Exatas e Tecnológicas", 
+        "FÍSICA": "Ciências Exatas e Tecnológicas", 
+        "MATEMATICA": "Ciências Exatas e Tecnológicas", 
+        "QUIMICA": "Ciências Exatas e Tecnológicas", 
+        "AGRONOMIA": "Ciências Agrárias", 
+        "ENGENHARIA FLORESTAL": "Ciências Agrárias", 
+        "AGROECOLOGIA": "Ciências Agrárias" }
+
 def padronizar_curso(s: pd.Series) -> pd.Series:
     s = s.str.strip().str.upper()
     
@@ -18,61 +53,30 @@ def padronizar_curso(s: pd.Series) -> pd.Series:
 # Carrega o dataset
 df = pd.read_csv("data/alunos_classificados1.csv") 
 df["CURSO"] = padronizar_curso(df["CURSO"])
+df["VAGA CLASSIFICAÇÃO"] = df["VAGA CLASSIFICAÇÃO"].fillna("")
+df["AREA"] = df["CURSO"].map(MAPA_AREAS)
+
+def build_options(series: pd.Series):
+    vals = sorted(series.dropna().unique())
+    return [{"label": v, "value": v} for v in vals]
+
+def filtrar_df(base, universidades=None, cursos=None, cidades=None, vagas=None):
+    df_filtrado = base
+    if universidades: df_filtrado = df_filtrado[df_filtrado["UNIVERSIDADE"].isin(universidades)]
+    if cursos:        df_filtrado = df_filtrado[df_filtrado["CURSO"].isin(cursos)]
+    if cidades:       df_filtrado = df_filtrado[df_filtrado["CIDADE"].isin(cidades)]
+    if vagas:         df_filtrado = df_filtrado[df_filtrado["VAGA CLASSIFICAÇÃO"].isin(vagas)]
+    return df_filtrado
+
+def percent_feminino(df_):
+    vc = df_["SEXO"].value_counts()
+    total = vc.sum()
+    fem = vc.get("F", 0)
+    return (fem/total*100) if total else 0
 
 # Inicializar o app
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.title = "Dashboard Aprovados"
-
-def mapeamento_de_vagas():
-    mapa_vagas = {
-        "A": "A - Ampla Concorrência",
-        "I": "I - Escola Renda PPI",
-        "E": "E - Escola PPI",
-        "J": "J - Escola Renda PPI PCD",
-        "C": "C - Escola",
-        "G": "G - Escola Renda",
-        "H": "H - Escola Renda PCD",
-        "D": "D - Escola PCD",
-        "F": "F - Escola PPI PCD",
-        "B": "B - PCD"
-    }
-    return mapa_vagas
-
-def mapeamento_de_area():
-    mapa_area = { "PEDAGOGIA": "Educação", 
-                "LETRAS PORTUGUES": "Educação", 
-                "LETRAS INGLES": "Educação", 
-                "LETRAS - ESPANHOL": "Educação", 
-                "LETRAS - PORTUGUES": "Educação", 
-                "ADMINISTRAÇÃO": "Ciências Humanas e Sociais Aplicadas", 
-                "GEOGRAFIA": "Ciências Humanas e Sociais Aplicadas", 
-                "HISTÓRIA": "Ciências Humanas e Sociais Aplicadas", 
-                "MEDICINA": "Ciências da Saúde e Biológicas", 
-                "CIENCIAS BIOLOGICAS": "Ciências da Saúde e Biológicas", 
-                "ENGENHARIA DE PRODUÇÃO": "Ciências Exatas e Tecnológicas", 
-                "CIENCIA E TECNOLOGIA": "Ciências Exatas e Tecnológicas", 
-                "ENGENHARIA DE MATERIAIS": "Ciências Exatas e Tecnológicas", 
-                "GEOPROCESSAMENTO": "Ciências Exatas e Tecnológicas", 
-                "FÍSICA": "Ciências Exatas e Tecnológicas", 
-                "MATEMATICA": "Ciências Exatas e Tecnológicas", 
-                "QUIMICA": "Ciências Exatas e Tecnológicas", 
-                "AGRONOMIA": "Ciências Agrárias", 
-                "ENGENHARIA FLORESTAL": "Ciências Agrárias", 
-                "AGROECOLOGIA": "Ciências Agrárias" }
-    return mapa_area
-
-def filtrar_df(df_base, universidades=None, cursos=None, cidades=None, vagas=None):
-    df_f = df_base
-    if universidades:
-        df_f = df_f[df_f['UNIVERSIDADE'].isin(universidades)]
-    if cursos:
-        df_f = df_f[df_f['CURSO'].isin(cursos)]
-    if cidades:
-        df_f = df_f[df_f['CIDADE'].isin(cidades)]
-    if vagas:
-        df_f = df_f[df_f['VAGA CLASSIFICAÇÃO'].isin(vagas)]
-    return df_f
-
 
 # Layout
 app.layout = dbc.Container([
@@ -92,7 +96,7 @@ app.layout = dbc.Container([
         dbc.Col(dbc.Card([
             dbc.CardBody([
                 html.P("Mulheres são maioria entre os aprovados", className="kpi-title"),
-                html.H2(f"{(df['SEXO'].value_counts(normalize=True).get('F', 0)*100):.1f}%", className="kpi-value")
+                html.H2(f"{percent_feminino(df):.1f}%", className="kpi-value")
             ])
         ], className="kpi-card kpi-blue"), width=3),
         
@@ -115,26 +119,26 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.Label("Universidade"),
-            dcc.Dropdown(options=[{'label': v, 'value': v} for v in sorted(df['UNIVERSIDADE'].unique())],
+            dcc.Dropdown(options=build_options(df["UNIVERSIDADE"]),
                          placeholder="Selecione a universidade", multi=True, id="filtro_universidade")
         ], width=3),
 
         dbc.Col([
             html.Label("Campus"),
-            dcc.Dropdown(options=[{'label': c, 'value': c} for c in sorted(df['CIDADE'].unique())],
+            dcc.Dropdown(options=build_options(df["CIDADE"]),
                          placeholder="Selecione a cidade", multi=True, id="filtro_cidade")
         ], width=3),
 
         dbc.Col([
             html.Label("Curso"),
-            dcc.Dropdown(options=[{'label': c, 'value': c} for c in sorted(df['CURSO'].unique())],
+            dcc.Dropdown(options=build_options(df["CURSO"]),
                          placeholder="Selecione o curso", multi=True, id="filtro_curso")
         ], width=3),
 
         dbc.Col([
             html.Label("Vaga"),
             dcc.Dropdown(options=[
-                {'label': mapeamento_de_vagas().get(v, v), 'value': v}
+                {'label': MAPA_VAGAS.get(v, v), 'value': v}
                   for v in sorted(df['VAGA CLASSIFICAÇÃO'].unique())],
                  placeholder="Selecione a modalidade de vaga", multi=True, id="filtro_vaga")
         ], width=3)
@@ -172,28 +176,14 @@ app.layout = dbc.Container([
     ]
 )
 
-def atualizar_grafico_vaga(universidade, curso, cidade, vaga):
+def grafico_vaga(universidade, curso, cidade, vaga):
     # Copia do DataFrame original
-    df_filtrado = df.copy()
-    mapa = mapeamento_de_vagas()
-
-    # filtros
-    if curso:
-        df_filtrado = df_filtrado[df_filtrado['CURSO'].isin(curso)]
-    if cidade:
-        df_filtrado = df_filtrado[df_filtrado['CIDADE'].isin(cidade)]
-    if vaga:
-        df_filtrado = df_filtrado[df_filtrado['VAGA CLASSIFICAÇÃO'].isin(vaga)]
-    if universidade:
-        df_filtrado = df_filtrado[df_filtrado['UNIVERSIDADE'].isin(universidade)]
-
+    df_filtrado = filtrar_df(df, universidade, curso, cidade, vaga).copy()
     
-    df_filtrado['VAGA CLASSIFICAÇÃO'] = df_filtrado['VAGA CLASSIFICAÇÃO'].map(mapa)
+    df_filtrado['VAGA CLASSIFICAÇÃO'] = df_filtrado['VAGA CLASSIFICAÇÃO'].map(MAPA_VAGAS)
 
-    
     contagem = df_filtrado['VAGA CLASSIFICAÇÃO'].value_counts().reset_index()
     contagem.columns = ['VAGA CLASSIFICAÇÃO', 'TOTAL']
-
     
     fig = px.bar(
         contagem,
@@ -223,21 +213,14 @@ def atualizar_grafico_vaga(universidade, curso, cidade, vaga):
     ]
 )
 
-def atualizar_grafico_sexo(universidade, curso, cidade, vaga):
-    df_filtrado = df.copy()
-
-    if curso:
-        df_filtrado = df_filtrado[df_filtrado['CURSO'].isin(curso)]
-    if cidade:
-        df_filtrado = df_filtrado[df_filtrado['CIDADE'].isin(cidade)]
-    if vaga:
-        df_filtrado = df_filtrado[df_filtrado['VAGA CLASSIFICAÇÃO'].isin(vaga)]
-    if universidade:
-        df_filtrado = df_filtrado[df_filtrado['UNIVERSIDADE'].isin(universidade)]
+def grafico_sexo(universidade, curso, cidade, vaga):
+    df_filtrado = filtrar_df(df, universidade, curso, cidade, vaga).copy()
 
     contagem = df_filtrado['SEXO'].value_counts().reset_index()
     contagem.columns = ['SEXO', 'TOTAL']
 
+    perc_fem = (contagem.loc[contagem["SEXO"] == "F", "TOTAL"].sum() / contagem["TOTAL"].sum() * 100) if contagem["TOTAL"].sum() else 0 
+    
     contagem['SEXO'] = contagem['SEXO'].replace({
     'F': 'Feminino',
     'M': 'Masculino'})
@@ -247,10 +230,6 @@ def atualizar_grafico_sexo(universidade, curso, cidade, vaga):
     ])
 
     if not filtros_ativos:
-
-        total = contagem['TOTAL'].sum()
-        fem = contagem.loc[contagem['SEXO'] == 'Feminino', 'TOTAL'].sum()
-        perc_fem = (fem / total * 100) if total > 0 else 0
         titulo = f"Mulheres representam a maioria dos aprovados ({perc_fem:.1f}%)"
     else:
         filtros_txt = []
@@ -328,20 +307,11 @@ def atualizar_cursos_por_cidade(cidades_selecionadas, cursos_selecionados):
     ]
 )
 
-def atualizar_grafico_area(universidade, curso, cidade, vaga):
+def grafico_area(universidade, curso, cidade, vaga):
     # Copia do DataFrame original
-    df_filtrado = df.copy()
-    
+    df_filtrado = filtrar_df(df, universidade, curso, cidade, vaga).copy()
 
-    # filtros
-    if cidade:
-        df_filtrado = df_filtrado[df_filtrado['CIDADE'].isin(cidade)]
-    if vaga:
-        df_filtrado = df_filtrado[df_filtrado['VAGA CLASSIFICAÇÃO'].isin(vaga)]
-    if universidade:
-        df_filtrado = df_filtrado[df_filtrado['UNIVERSIDADE'].isin(universidade)]
-
-    df_filtrado['AREA'] = df_filtrado['CURSO'].map(mapeamento_de_area())
+    df_filtrado['AREA'] = df_filtrado['CURSO'].map(MAPA_AREAS)
 
     contagem = (
         df_filtrado['AREA']
@@ -415,10 +385,10 @@ def atualizar_grafico_area(universidade, curso, cidade, vaga):
     ]
 )
 
-def atualizar_grafico_sexo_por_area(universidade, curso, cidade, vaga):
-    df_filtrado = df.copy()
+def grafico_sexo_por_area(universidade, curso, cidade, vaga):
+    df_filtrado = filtrar_df(df, universidade, curso, cidade, vaga).copy()
 
-    df_filtrado["AREA"] = df_filtrado["CURSO"].map(mapeamento_de_area())
+    df_filtrado["AREA"] = df_filtrado["CURSO"].map(MAPA_AREAS)
 
     # agrega sexo por área
     contagem_sexo_area = (
@@ -452,7 +422,10 @@ def atualizar_grafico_sexo_por_area(universidade, curso, cidade, vaga):
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         height=400,
-        title_x=0.5
+        title_x=0.5,
+        yaxis=dict(       
+        categoryorder="total ascending"  # ordena pelas quantidades 
+        ),
     )
     return fig
 
