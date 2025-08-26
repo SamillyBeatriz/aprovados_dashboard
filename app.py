@@ -51,7 +51,7 @@ def padronizar_curso(s: pd.Series) -> pd.Series:
     return s
 
 # Carrega o dataset
-df = pd.read_csv("data/alunos_classificados1.csv") 
+df = pd.read_csv("data/alunos_classificados2.csv") 
 df["CURSO"] = padronizar_curso(df["CURSO"])
 df["VAGA CLASSIFICAÇÃO"] = df["VAGA CLASSIFICAÇÃO"].fillna("")
 df["AREA"] = df["CURSO"].map(MAPA_AREAS)
