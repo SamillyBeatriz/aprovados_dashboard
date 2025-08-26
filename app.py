@@ -37,7 +37,14 @@ MAPA_AREAS = {
         "QUIMICA": "Ciências Exatas e Tecnológicas", 
         "AGRONOMIA": "Ciências Agrárias", 
         "ENGENHARIA FLORESTAL": "Ciências Agrárias", 
-        "AGROECOLOGIA": "Ciências Agrárias" }
+        "AGROECOLOGIA": "Ciências Agrárias",
+        "ARQUITETURA E URBANISMO": "Ciências Humanas e Sociais Aplicadas",
+        "ARQUIVOLOGIA": "Ciências Humanas e Sociais Aplicadas",
+        "BIBLIOTECONOMIA": "Ciências Humanas e Sociais Aplicadas",
+        "BIOMEDICINA": "Ciências da Saúde e Biológicas",
+        "BIOTECNOLOGIA": "Ciências da Saúde e Biológicas",
+        "CIÊNCIA DA COMPUTAÇÃO": "Ciências Exatas e Tecnológicas"
+          }
 
 def padronizar_curso(s: pd.Series) -> pd.Series:
     s = s.str.strip().str.upper()
@@ -334,8 +341,9 @@ def grafico_area(universidade, curso, cidade, vaga):
         return fig
     
     # Área com maior aquisição
-    top_area = contagem.loc[0, 'AREA']
-    top_total = int(contagem.loc[0, 'TOTAL'])
+    idx_max = contagem["TOTAL"].idxmax()
+    top_area = contagem.loc[idx_max, 'AREA']
+    top_total = int(contagem.loc[idx_max, 'TOTAL'])
     total_geral = int(contagem['TOTAL'].sum())
     top_share = (top_total / total_geral * 100) if total_geral > 0 else 0
 
@@ -348,7 +356,8 @@ def grafico_area(universidade, curso, cidade, vaga):
 
     titulo = f"{top_area} é a área com maior aquisição ({top_total} alunos, {top_share:.1f}%)" + subtitulo
 
-    cores = ['#17becf' if a == top_area else '#cbd5e1' for a in contagem['AREA']]
+    ordem = contagem['AREA'].tolist()
+    cores = ['#17becf' if a == top_area else '#cbd5e1' for a in ordem]
 
     # Gráfico
     fig = px.bar(
@@ -358,14 +367,11 @@ def grafico_area(universidade, curso, cidade, vaga):
         text='TOTAL',
         title=titulo)
   
-    fig.update_traces(marker_color=cores, textposition='outside', showlegend=False, cliponaxis=False)
+    fig.update_xaxes(categoryorder='array', categoryarray=ordem)
+    fig.update_traces(marker_color=cores, selector=dict(type='bar'), textposition='outside', showlegend=False, cliponaxis=False)
     
     fig.update_layout(
         xaxis_title="Área",
-        yaxis=dict(
-        automargin=True,       
-        categoryorder="total ascending"  # ordena pelas quantidades 
-        ),
         yaxis_title="Total",
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
@@ -387,7 +393,6 @@ def grafico_area(universidade, curso, cidade, vaga):
 
 def grafico_sexo_por_area(universidade, curso, cidade, vaga):
     df_filtrado = filtrar_df(df, universidade, curso, cidade, vaga).copy()
-
     df_filtrado["AREA"] = df_filtrado["CURSO"].map(MAPA_AREAS)
 
     # agrega sexo por área
@@ -403,6 +408,26 @@ def grafico_sexo_por_area(universidade, curso, cidade, vaga):
         {"F": "Feminino", "M": "Masculino"}
     )
 
+    contagem_sexo_area["PERC"] = contagem_sexo_area.groupby("AREA")["TOTAL"].transform(
+        lambda x: x / x.sum() * 100
+    )
+
+    # conta qual area mais dominante por sexo
+    area_fem = (contagem_sexo_area[contagem_sexo_area["SEXO"] == "Feminino"]
+                .sort_values("PERC", ascending=False)
+                .head(1))
+    area_masc = (contagem_sexo_area[contagem_sexo_area["SEXO"] == "Masculino"]
+                 .sort_values("PERC", ascending=False)
+                 .head(1))
+
+    if not area_fem.empty and not area_masc.empty:
+        titulo = (f"Mulheres dominan em {area_fem.iloc[0]['AREA']} "
+                  f"({area_fem.iloc[0]['PERC']:.1f}%) e "
+                  f"Homens em {area_masc.iloc[0]['AREA']} "
+                  f"({area_masc.iloc[0]['PERC']:.1f}%)")
+    else:
+        titulo = "Distribuição por Sexo em cada Área"
+    
     fig = px.pie(
         contagem_sexo_area,
         names="SEXO",
@@ -411,7 +436,7 @@ def grafico_sexo_por_area(universidade, curso, cidade, vaga):
         color_discrete_map={"Feminino": "#0ea5e9", "Masculino": "#ffffb3"},
         facet_col="AREA",  
         hole=0.55,
-        title="Distribuição por Sexo em cada Área"
+        title=titulo
     )
 
     fig.update_traces(textinfo="percent", textposition="inside", showlegend=True)
