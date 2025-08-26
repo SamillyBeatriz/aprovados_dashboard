@@ -9,6 +9,8 @@ Este projeto tem como objetivo explorar dados reais de estudantes aprovados em u
 
   - Barras por tipo de vaga
   - Pizza por distribuição de sexo
+  - Barras por área
+  - Pizza por distribuição de sexo por área
 
 - Filtros por curso, campus e modalidade de ingresso
 
