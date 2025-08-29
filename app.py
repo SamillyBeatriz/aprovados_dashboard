@@ -3,62 +3,22 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 from dash.dependencies import Input, Output, State
+from src.mapa_areas import MAPA_AREAS
+from src.mapa_vagas import MAPA_VAGAS
 
-MAPA_VAGAS = {
-        "A": "A - Ampla Concorrência",
-        "I": "I - Escola Renda PPI",
-        "E": "E - Escola PPI",
-        "J": "J - Escola Renda PPI PCD",
-        "C": "C - Escola",
-        "G": "G - Escola Renda",
-        "H": "H - Escola Renda PCD",
-        "D": "D - Escola PCD",
-        "F": "F - Escola PPI PCD",
-        "B": "B - PCD"
-    }
-
-MAPA_AREAS = { 
-        "PEDAGOGIA": "Educação", 
-        "LETRAS PORTUGUES": "Educação", 
-        "LETRAS INGLES": "Educação", 
-        "LETRAS - ESPANHOL": "Educação", 
-        "LETRAS - PORTUGUES": "Educação", 
-        "ADMINISTRAÇÃO": "Ciências Humanas e Sociais Aplicadas", 
-        "GEOGRAFIA": "Ciências Humanas e Sociais Aplicadas", 
-        "HISTÓRIA": "Ciências Humanas e Sociais Aplicadas", 
-        "MEDICINA": "Ciências da Saúde e Biológicas", 
-        "CIENCIAS BIOLOGICAS": "Ciências da Saúde e Biológicas", 
-        "ENGENHARIA DE PRODUÇÃO": "Ciências Exatas e Tecnológicas", 
-        "CIENCIA E TECNOLOGIA": "Ciências Exatas e Tecnológicas", 
-        "ENGENHARIA DE MATERIAIS": "Ciências Exatas e Tecnológicas", 
-        "GEOPROCESSAMENTO": "Ciências Exatas e Tecnológicas", 
-        "FÍSICA": "Ciências Exatas e Tecnológicas", 
-        "MATEMATICA": "Ciências Exatas e Tecnológicas", 
-        "QUIMICA": "Ciências Exatas e Tecnológicas", 
-        "AGRONOMIA": "Ciências Agrárias", 
-        "ENGENHARIA FLORESTAL": "Ciências Agrárias", 
-        "AGROECOLOGIA": "Ciências Agrárias",
-        "ARQUITETURA E URBANISMO": "Ciências Humanas e Sociais Aplicadas",
-        "ARQUIVOLOGIA": "Ciências Humanas e Sociais Aplicadas",
-        "BIBLIOTECONOMIA": "Ciências Humanas e Sociais Aplicadas",
-        "BIOMEDICINA": "Ciências da Saúde e Biológicas",
-        "BIOTECNOLOGIA": "Ciências da Saúde e Biológicas",
-        "CIÊNCIA DA COMPUTAÇÃO": "Ciências Exatas e Tecnológicas"
-          }
 
 def padronizar_curso(s: pd.Series) -> pd.Series:
     s = s.str.strip().str.upper()
     
     s = s.replace({
-        "FÍSICA": "FISICA",
-        "LETRAS INGLES" :"LETRAS - INGLES"
+        "ENGENHARIA DE PRODUÇÃO": "ENGENHARIA DE PRODUCAO"
     })
     # normalização de espaços múltiplos
     s = s.str.replace(r"\s+", " ", regex=True)
     return s
 
 # Carrega o dataset
-df = pd.read_csv("data/alunos_classificados2.csv") 
+df = pd.read_csv("data/alunos_classificados3.csv") 
 df["CURSO"] = padronizar_curso(df["CURSO"])
 df["VAGA CLASSIFICAÇÃO"] = df["VAGA CLASSIFICAÇÃO"].fillna("")
 df["AREA"] = df["CURSO"].map(MAPA_AREAS)
@@ -87,7 +47,7 @@ app.title = "Dashboard Aprovados"
 
 # Layout
 app.layout = dbc.Container([
-    html.H1(" 📊 Aprovados em Universidades Públicas", className="text-center my-4"),
+    html.H1(" 📊 Aprovados em Universidades Públicas 📊", className="text-center my-4"),
 
     html.Hr(),
 
