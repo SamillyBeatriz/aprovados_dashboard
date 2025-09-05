@@ -55,32 +55,32 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col(dbc.Card([
             dbc.CardBody([
-                html.P("Mais de mil estudantes conquistaram vaga", className="kpi-title"),
+                html.P("Estudantes Aprovados", className="kpi-title"),
                 html.H2(f"{len(df)}", className="kpi-value")
-            ])
+            ], className="text-center")
         ], className="kpi-card kpi-green"), width=3),
 
         dbc.Col(dbc.Card([
             dbc.CardBody([
-                html.P("Mulheres são maioria entre os aprovados", className="kpi-title"),
+                html.P("% Mulheres", className="kpi-title"),
                 html.H2(f"{percent_feminino(df):.1f}%", className="kpi-value")
-            ])
+            ], className="text-center")
         ], className="kpi-card kpi-blue"), width=3),
-        
+
         dbc.Col(dbc.Card([
             dbc.CardBody([
-                html.H5("Quase metade dos aprovados veio por cotas", className="kpi-title"),
+                html.P("% Cotas", className="kpi-title"),
                 html.H2(f"{(df['VAGA CLASSIFICAÇÃO'].apply(lambda x: 'A' not in x).mean()*100):.1f}%", className="kpi-value")
-            ])
+            ], className="text-center")
         ], className="kpi-card kpi-cyan"), width=3),
 
         dbc.Col(dbc.Card([
             dbc.CardBody([
-                html.H5("Nota Média dos alunos aprovados", className="kpi-title"),
+                html.P("Nota Média", className="kpi-title"),
                 html.H2(f"{df['PONTUAÇÃO'].mean():.2f}", className="kpi-value")
-            ])
+            ], className="text-center")
         ], className="kpi-card kpi-teal"), width=3),
-    ], className="mb-4"),
+    ], className="mb-4 justify-content-center"),
 
     # Filtros
     dbc.Row([
@@ -109,12 +109,13 @@ app.layout = dbc.Container([
                   for v in sorted(df['VAGA CLASSIFICAÇÃO'].unique())],
                  placeholder="Selecione a modalidade de vaga", multi=True, id="filtro_vaga")
         ], width=3)
-    ]),
+    ], className="mb-4 justify-content-center"),
 
     html.Hr(),
 
     # Gráficos
     dbc.Row([
+        dbc.Row([
         dbc.Col(
             dcc.Graph(id="grafico_vaga", config={"displayModeBar": False}),
         width=6, className="grafico-sombreado m-2"),
@@ -122,7 +123,9 @@ app.layout = dbc.Container([
         dbc.Col(
             dcc.Graph(id="grafico_sexo", config={"displayModeBar": False}),
         width=5, className="grafico-sombreado m-2"),
-
+    ], className="mb-4 justify-content-center"),
+    
+    dbc.Row([
         dbc.Col(
             dcc.Graph(id="grafico_area", config={"displayModeBar": False}),
             width=11, className="grafico-sombreado m-2"),
@@ -130,8 +133,9 @@ app.layout = dbc.Container([
         dbc.Col(
             dcc.Graph(id="grafico_sexo_por_area", config={"displayModeBar": False}), 
             width=11, className="grafico-sombreado m-2"),      
-    ])
-], style={"maxWidth": "1800px", "margin": "0 auto"}),
+    ], className="mb-4 justify-content-center"),
+], className="mb-4")
+])
 
 @app.callback(
     Output("grafico_vaga", "figure"),

@@ -4,28 +4,17 @@
   border-radius: 14px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   color: #fff;
-  min-height: 110px;
-}
-
-.kpi-body {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 18px 20px;
+  min-height: 90px;
 }
 
 .kpi-title {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 1rem;
-  letter-spacing: 0.2px;
-  margin: 0 0 8px 0;
 }
 
 .kpi-value {
   font-weight: 700;
   font-size: 3rem;
-  line-height: 1;
-  margin: 0;
 }
 
 .kpi-green {
